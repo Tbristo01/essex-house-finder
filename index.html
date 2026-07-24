@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Find active MLS multi-family homes in Essex County NJ under $850k within a 45-minute transit commute to NYC Penn Station.">
+<meta name="color-scheme" content="dark">
+<title>Essex Multi-Family Finder</title>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #101217; --bg-2: #14161C; --surface: #1A1D24; --surface-2: #22262F;
+    --line: #2A2E38; --line-2: #363B47;
+    --brass: #C6913E; --brass-hi: #E0B368; --brass-dim: #7E5C22;
+    --rail: #6E93B8; --rail-bg: rgba(110,147,184,0.12);
+    --go: #5FB98A; --go-bg: rgba(95,185,138,0.12);
+    --warn: #D9A441; --warn-bg: rgba(217,164,65,0.12);
+    --over: #D9695C; --over-bg: rgba(217,105,92,0.12);
+    --text: #ECE7DE; --text-2: #B2AC9F; --muted: #857F72;
+    --mono: "SF Mono","JetBrains Mono","Fira Code",ui-monospace,Menlo,monospace;
+    --serif: Georgia,"Times New Roman",serif;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --radius: 14px; --radius-sm: 9px; --maxw: 1240px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100dvh; color: var(--text); font-family: var(--sans);
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(1200px 600px at 82% -10%, rgba(198,145,62,0.10), transparent 60%),
+      radial-gradient(900px 480px at 5% 0%, rgba(110,147,184,0.07), transparent 55%),
+      var(--bg);
+  }
+  .num { font-variant-numeric: tabular-nums; font-family: var(--mono); }
+  .label { text-transform: uppercase; letter-spacing: 0.15em; font-size: 11px; font-weight: 600; color: var(--muted); }
+  a { color: var(--brass-hi); }
+  button, select, input { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
+  ::selection { background: rgba(198,145,62,0.28); color: #fff; }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px 120px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 40; backdrop-filter: blur(14px);
+    background: linear-gradient(180deg, rgba(16,18,23,0.94), rgba(16,18,23,0.74));
+    border-bottom: 1px solid var(--line);
+  }
+  .top-inner { max-width: var(--maxw); margin: 0 auto; padding: 14px 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 13px; margin-right: auto; }
+  .glyph { width: 42px; height: 42px; border-radius: 11px; flex: none; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 25%, rgba(198,145,62,0.22), rgba(0,0,0,0.35)); border: 1px solid var(--brass-dim); }
+  .glyph svg { width: 22px; height: 22px; color: var(--brass-hi); }
+  .brand h1 { margin: 0; font-family: var(--serif); font-weight: 700; font-size: 19px; line-height: 1.1; }
+  .brand .sub { font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); }
+
+  .hero { padding: 30px 0 6px; }
+  .hero .eyebrow { color: var(--brass); }
+  .hero h2 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px,4vw,40px); line-height: 1.06; margin: 12px 0 10px; letter-spacing: -0.01em; text-wrap: balance; max-width: 20ch; }
+  .hero p { color: var(--text-2); max-width: 66ch; margin: 0; font-size: 15px; }
+  .hero em { color: var(--brass-hi); font-style: normal; }
+
+  /* stat row */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin: 24px 0 6px; }
+  .stat { background: linear-gradient(180deg,var(--surface),var(--bg-2)); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 17px; position: relative; overflow: hidden; }
+  .stat::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--line-2); }
+  .stat.brass::after { background: linear-gradient(var(--brass),var(--brass-dim)); }
+  .stat.rail::after { background: var(--rail); }
+  .stat.go::after { background: var(--go); }
+  .stat .v { font-family: var(--mono); font-size: 25px; font-weight: 600; letter-spacing: -0.02em; margin-top: 7px; font-variant-numeric: tabular-nums; }
+  .stat .v.brass { color: var(--brass-hi); } .stat .v.rail { color: var(--rail); } .stat .v.go { color: var(--go); }
+  .stat .cap { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* data source bar */
+  .srcbar { display: flex; align-items: center; gap: 10px; margin: 22px 0 0; padding: 11px 15px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); font-size: 13px; color: var(--text-2); flex-wrap: wrap; }
+  .srcbar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  .srcbar.live .dot { background: var(--go); box-shadow: 0 0 0 3px rgba(95,185,138,0.18); }
+  .srcbar b { color: var(--text); }
+  .srcbar .demo-pill { font-size: 10px; letter-spacing: 0.1em; font-weight: 800; text-transform: uppercase; color: var(--warn); background: var(--warn-bg); border: 1px solid rgba(217,164,65,0.35); padding: 3px 8px; border-radius: 999px; }
+
+  /* filters */
+  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 16px 18px; margin: 16px 0 6px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .ctl { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .ctl .val { font-family: var(--mono); font-size: 15px; color: var(--brass-hi); font-weight: 600; }
+  select, input[type=text], input[type=number] { background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; width: 100%; }
+  select { cursor: pointer; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 5px; border-radius: 3px; background: linear-gradient(90deg,var(--brass-dim),var(--brass)) no-repeat; background-size: var(--fill,50%) 100%; width: 100%; cursor: pointer; margin: 6px 0 0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--brass-hi); border: 3px solid #120f07; box-shadow: 0 0 0 1px var(--brass-dim); cursor: grab; }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--brass-hi); border: 3px solid #120f07; cursor: grab; }
+  .toggle { display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; padding: 8px 0; }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .toggle .box { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line-2); background: var(--bg-2); display: grid; place-items: center; flex: none; transition: background .15s, border-color .15s; }
+  .toggle .box svg { width: 13px; height: 13px; color: #120f07; opacity: 0; }
+  .toggle input:checked + .box { background: var(--brass); border-color: var(--brass); }
+  .toggle input:checked + .box svg { opacity: 1; }
+  .toggle span.t { font-size: 13.5px; color: var(--text-2); }
+
+  .btn { border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); padding: 9px 15px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13.5px; font-weight: 600; transition: border-color .16s, background .16s, transform .05s; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+  .btn:hover { border-color: var(--brass-dim); background: #2a2e38; }
+  .btn:active { transform: translateY(1px); }
+  .btn.brass { background: linear-gradient(180deg,var(--brass),var(--brass-dim)); color: #140f05; border-color: var(--brass-dim); }
+  .btn.brass:hover { background: linear-gradient(180deg,var(--brass-hi),var(--brass)); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: 12.5px; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 20px 2px 14px; }
+  .sortline { display: flex; align-items: center; gap: 10px; }
+  .sortline select { width: auto; padding: 7px 10px; font-size: 13px; }
+
+  /* listing grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
+  .card { background: linear-gradient(180deg,var(--surface),var(--bg-2)); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: border-color .2s, box-shadow .2s, transform .2s; }
+  .card:hover { border-color: var(--line-2); box-shadow: 0 12px 40px rgba(0,0,0,.45); transform: translateY(-2px); }
+  .card.short { border-color: var(--brass-dim); box-shadow: 0 0 0 1px rgba(198,145,62,.3), 0 12px 40px rgba(0,0,0,.4); }
+
+  .photo { position: relative; aspect-ratio: 16/10; background: var(--surface-2); overflow: hidden; display: grid; place-items: center; border-bottom: 1px solid var(--line); }
+  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .photo .ph { display: grid; place-items: center; gap: 6px; color: var(--muted); }
+  .photo .ph svg { width: 40px; height: 40px; opacity: .5; }
+  .photo .ph span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+  .ptags { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .ptag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; backdrop-filter: blur(6px); }
+  .ptag.units { background: linear-gradient(180deg,var(--brass),var(--brass-dim)); color: #140f05; }
+  .ptag.status { background: rgba(95,185,138,.9); color: #06251a; }
+  .commute-chip { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 5px 9px; border-radius: 8px; backdrop-filter: blur(6px); }
+  .commute-chip svg { width: 13px; height: 13px; }
+  .commute-chip.go { background: rgba(95,185,138,.18); color: var(--go); border: 1px solid rgba(95,185,138,.4); }
+  .commute-chip.warn { background: rgba(217,164,65,.18); color: var(--warn); border: 1px solid rgba(217,164,65,.4); }
+
+  .cbody { padding: 14px 15px; display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+  .priceline { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .price { font-family: var(--mono); font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+  .ppu { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+  .addr { font-family: var(--serif); font-size: 15.5px; margin: 6px 0 0; min-width: 0; overflow-wrap: anywhere; }
+  .addr a { color: inherit; text-decoration: none; }
+  .addr a:hover { color: var(--brass-hi); }
+  .town { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--rail); font-weight: 600; margin-top: 3px; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
+  .fact { font-size: 12px; color: var(--muted); min-width: 0; }
+  .fact b { color: var(--text-2); font-family: var(--mono); font-weight: 600; }
+
+  .feats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .feat { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: 7px; border: 1px solid; }
+  .feat svg { width: 12px; height: 12px; }
+  .feat.yes { color: var(--go); background: var(--go-bg); border-color: rgba(95,185,138,.3); }
+  .feat.no { color: var(--muted); background: transparent; border-color: var(--line-2); }
+
+  .snippet { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-top: 12px; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-sm); max-height: 0; overflow: hidden; padding-top: 0; padding-bottom: 0; border-color: transparent; transition: max-height .25s, padding .25s, border-color .25s; }
+  .snippet.open { max-height: 260px; padding: 10px 12px; border-color: var(--line); }
+  .snippet .mls { display: block; margin-top: 8px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+  .cactions { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+  .cactions .btn { flex: 1 1 0; min-width: 0; justify-content: center; }
+  .cactions .btn.icon-only { flex: 0 0 auto; padding: 6px 9px; }
+  .star { color: var(--muted); }
+  .star.on { color: var(--brass-hi); }
+
+  .empty { grid-column: 1/-1; text-align: center; padding: 56px 20px; color: var(--muted); border: 1px dashed var(--line-2); border-radius: var(--radius); }
+
+  /* shortlist dock */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; transform: translateY(120%); transition: transform .3s; }
+  .dock.show { transform: translateY(0); }
+  .dock-inner { max-width: var(--maxw); margin: 0 auto; padding: 12px 22px; margin-bottom: 14px; }
+  .dock-card { background: var(--surface); border: 1px solid var(--brass-dim); border-radius: 14px; box-shadow: 0 -8px 40px rgba(0,0,0,.5); padding: 13px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .dock-card .n { font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--brass-hi); }
+  .dock-card .lbl { font-size: 13px; color: var(--text-2); margin-right: auto; }
+  .dock-card .btn { flex: none; }
+
+  /* modal */
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.66); backdrop-filter: blur(4px); z-index: 90; display: none; }
+  .backdrop.open { display: grid; place-items: start center; overflow-y: auto; padding: 40px 16px; }
+  .modal { background: var(--surface); border: 1px solid var(--line-2); border-radius: 18px; width: 100%; max-width: 600px; box-shadow: 0 30px 90px rgba(0,0,0,.6); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 6px; }
+  .modal-head h3 { margin: 0; font-family: var(--serif); font-size: 20px; }
+  .modal-body { padding: 12px 22px; }
+  .x { border: 0; background: transparent; color: var(--muted); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; }
+  .x:hover { background: var(--surface-2); color: var(--text); }
+  .export-box { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 13px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: var(--text-2); max-height: 300px; overflow: auto; }
+  .modal-foot { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px 22px; flex-wrap: wrap; }
+
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface-2); border: 1px solid var(--brass-dim); color: var(--text); padding: 12px 20px; border-radius: 999px; font-size: 13.5px; font-weight: 600; box-shadow: 0 14px 40px rgba(0,0,0,.5); opacity: 0; pointer-events: none; z-index: 120; transition: opacity .25s, transform .25s; display: flex; align-items: center; gap: 9px; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast svg { width: 16px; height: 16px; color: var(--go); }
+
+  .disclaimer { margin-top: 34px; padding: 15px 17px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); color: var(--muted); font-size: 12.5px; max-width: 82ch; }
+  .disclaimer b { color: var(--text-2); }
+
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2,1fr); } .wrap { padding: 0 16px 120px; } .top-inner { padding: 12px 16px; } .brand .sub { display: none; } }
+  @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9 20v-6h6v6"/></svg></div>
+      <div>
+        <h1>Essex Multi-Family Finder</h1>
+        <div class="sub">Active MLS · ≤ $850k · Penn Station commute</div>
+      </div>
+    </div>
+    <button class="btn ghost sm" onclick="openExport()" id="dock-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Shortlist &amp; send
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="label eyebrow">Multi-family · 2+ units · finished basement + parking</div>
+    <h2>Homes that pencil out — and get you to Penn on time.</h2>
+    <p>Active listings only, grounded in MLS data. Each home is checked against your budget, unit count, taxes, parking, and a real door-to-<em>NYC Penn Station</em> transit time. Shortlist the winners and send them to your realtor in one tap.</p>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="srcbar" id="srcbar">
+    <span class="dot"></span>
+    <span id="src-status">Loading listings…</span>
+    <button class="btn ghost sm" style="margin-left:auto" onclick="loadListings(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="filters">
+    <div class="ctl">
+      <div class="label">Town</div>
+      <select id="f-town" onchange="render()"><option value="all">All towns</option></select>
+    </div>
+    <div class="ctl">
+      <div class="label">Units</div>
+      <select id="f-units" onchange="render()">
+        <option value="2">2+ family</option>
+        <option value="3">3+ family</option>
+        <option value="4">4 family</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <div class="label">Max price · <span class="val" id="price-val">$850k</span></div>
+      <input type="range" id="f-price" min="450000" max="850000" step="10000" value="850000" oninput="setPrice(this.value)">
+    </div>
+    <div class="ctl">
+      <div class="label">Max commute · <span class="val" id="commute-val">55 min</span></div>
+      <input type="range" id="f-commute" min="25" max="55" step="1" value="55" oninput="setCommute(this.value)">
+    </div>
+    <div class="ctl" style="justify-content:flex-end">
+      <label class="toggle"><input type="checkbox" id="f-basement" onchange="render()"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span class="t">Finished basement + full bath</span></label>
+      <label class="toggle"><input type="checkbox" id="f-parking" onchange="render()"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span class="t">Parking</span></label>
+    </div>
+  </div>
+
+  <div class="list-head">
+    <div class="label" id="count">— homes</div>
+    <div class="sortline">
+      <span class="label">Sort</span>
+      <select id="sort" onchange="render()">
+        <option value="commute">Shortest commute</option>
+        <option value="fit">Best fit</option>
+        <option value="price">Lowest price</option>
+        <option value="taxes">Lowest taxes</option>
+        <option value="ppu">Lowest $/unit</option>
+      </select>
+      <button class="btn ghost sm" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="disclaimer" id="disclaimer">
+    <b>How to read this.</b> Listings are active MLS-sourced records. Unit count, price, and taxes come from structured fields; <b>finished basement + full bath</b> and <b>parking</b> are detected from the listing description, so treat them as a strong hint and confirm on the listing before you fall in love. Commute is a door-to-Penn public-transit estimate. Always verify current status with your realtor before touring.
+  </div>
+</div>
+
+<!-- shortlist dock -->
+<div class="dock" id="dock">
+  <div class="dock-inner">
+    <div class="dock-card">
+      <span class="n" id="dock-n">0</span>
+      <span class="lbl">homes shortlisted</span>
+      <button class="btn ghost sm" onclick="clearShortlist()">Clear</button>
+      <button class="btn brass sm" onclick="openExport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Send to realtor
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- export modal -->
+<div class="backdrop" id="backdrop" onclick="if(event.target===this)closeExport()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ex-title">
+    <div class="modal-head">
+      <h3 id="ex-title">Send your shortlist</h3>
+      <button class="x" onclick="closeExport()" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="label" style="margin-bottom:8px">Preview — ready to email or text</div>
+      <div class="export-box" id="export-text"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="copyExport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy for text</button>
+      <a class="btn brass" id="email-btn" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m4 6 8 6 8-6"/></svg> Email realtor</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span id="toast-msg">Copied</span></div>
+
+<script>
+  // ------- config -------
+  const PENN = "NY Penn Station";
+  const MAX_BUDGET = 850000;
+  // Essex + nearby commuter towns with a rough transit baseline (minutes to Penn).
+  // The pipeline overwrites commuteMin with a live Google Directions value when available.
+  const REALTOR_EMAIL = ""; // optional: prefill your realtor's address here
+
+  // ------- inline sample (fallback when no live listings.json) -------
+  const SAMPLE = [
+    { id:"s1", address:"Maplewood Ave (2-fam)", town:"Maplewood", county:"Essex", price:749000, units:2, beds:6, baths:3, taxAnnual:14200, parking:"Driveway (4)", parkingYes:true, basementFinished:true, basementFullBath:true, commuteMin:32, station:"Maplewood (Midtown Direct)", sqft:2600, mls:"GSMLS 3901xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Maplewood_NJ/type-multi-family-home", desc:"Classic center-hall two-family. Finished basement with full bath and summer kitchen. Long driveway parks 4. Separate utilities, updated roof.", source:"sample" },
+    { id:"s2", address:"Prospect St (3-fam)", town:"South Orange", county:"Essex", price:825000, units:3, beds:9, baths:4, taxAnnual:17800, parking:"Driveway (3)", parkingYes:true, basementFinished:false, basementFullBath:false, commuteMin:30, station:"South Orange (Midtown Direct)", sqft:3400, mls:"GSMLS 3902xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/South-Orange_NJ/type-multi-family-home", desc:"Well-kept three-family steps from the village and train. Full unfinished basement, off-street parking for 3. Strong rent roll.", source:"sample" },
+    { id:"s3", address:"Forest Hill (3-fam)", town:"Newark", county:"Essex", price:625000, units:3, beds:8, baths:4, taxAnnual:11400, parking:"Driveway (2)", parkingYes:true, basementFinished:true, basementFullBath:true, commuteMin:22, station:"Newark Penn (NEC/PATH)", sqft:3100, mls:"GSMLS 3903xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Newark_NJ/type-multi-family-home", desc:"Forest Hill three-family. Finished basement with full bath, ideal owner setup. Driveway parking, 22 min to Penn from Newark.", source:"sample" },
+    { id:"s4", address:"N Arlington Ave (4-fam)", town:"East Orange", county:"Essex", price:799000, units:4, beds:10, baths:5, taxAnnual:16900, parking:"Lot (5)", parkingYes:true, basementFinished:true, basementFullBath:false, commuteMin:35, station:"Brick Church (Midtown Direct)", sqft:4200, mls:"GSMLS 3904xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/East-Orange_NJ/type-multi-family-home", desc:"Four-family with parking lot (5 spaces). Finished basement, half bath. Blocks from Brick Church station.", source:"sample" },
+    { id:"s5", address:"Walnut St (2-fam)", town:"Montclair", county:"Essex", price:839000, units:2, beds:5, baths:3, taxAnnual:18500, parking:"Garage (2)", parkingYes:true, basementFinished:true, basementFullBath:true, commuteMin:44, station:"Bay St (Montclair-Boonton)", sqft:2800, mls:"GSMLS 3905xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Montclair_NJ/type-multi-family-home", desc:"Montclair two-family near Bay Street. Finished basement with full bath, two-car garage. 44 min to Penn.", source:"sample" },
+    { id:"s6", address:"Broughton Ave (3-fam)", town:"Bloomfield", county:"Essex", price:689000, units:3, beds:8, baths:3, taxAnnual:13700, parking:"Driveway (3)", parkingYes:true, basementFinished:true, basementFullBath:false, commuteMin:40, station:"Bloomfield (Montclair-Boonton)", sqft:3200, mls:"GSMLS 3906xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Bloomfield_NJ/type-multi-family-home", desc:"Three-family, finished basement rec room, driveway for 3. Close to Watsessing/Bloomfield stations.", source:"sample" },
+    { id:"s7", address:"Colonial Ave (4-fam)", town:"Orange", county:"Essex", price:845000, units:4, beds:11, baths:5, taxAnnual:17200, parking:"Driveway (4)", parkingYes:true, basementFinished:true, basementFullBath:true, commuteMin:36, station:"Highland Ave (Midtown Direct)", sqft:4400, mls:"GSMLS 3907xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Orange_NJ/type-multi-family-home", desc:"Rare four-family under budget. Finished basement with full bath. Driveway parks 4. Near Highland Ave station.", source:"sample" },
+    { id:"s8", address:"Ridgewood Rd (2-fam)", town:"Glen Ridge", county:"Essex", price:829000, units:2, beds:6, baths:3, taxAnnual:19800, parking:"Garage (2)", parkingYes:true, basementFinished:true, basementFullBath:false, commuteMin:42, station:"Glen Ridge (Montclair-Boonton)", sqft:3000, mls:"GSMLS 3908xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Glen-Ridge_NJ/type-multi-family-home", desc:"Glen Ridge two-family, finished basement, two-car garage. Walk to Glen Ridge station.", source:"sample" },
+    { id:"s9", address:"Morris Ave (2-fam)", town:"Union", county:"Union (nearby)", price:575000, units:2, beds:6, baths:3, taxAnnual:12100, parking:"Driveway (3)", parkingYes:true, basementFinished:true, basementFullBath:true, commuteMin:52, station:"Union (Raritan Valley, transfer)", sqft:2500, mls:"GSMLS 3909xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Union_NJ/type-multi-family-home", desc:"Union two-family. Finished basement with full bath, driveway for 3. Raritan Valley Line with transfer at Newark, ~52 min.", source:"sample" },
+    { id:"s10", address:"Sanford Ave (3-fam)", town:"Irvington", county:"Essex", price:525000, units:3, beds:8, baths:3, taxAnnual:10200, parking:"Driveway (2)", parkingYes:true, basementFinished:true, basementFullBath:false, commuteMin:38, station:"Newark Penn via bus 25", sqft:3000, mls:"GSMLS 3910xxxx", listingUrl:"https://www.realtor.com/realestateandhomes-search/Irvington_NJ/type-multi-family-home", desc:"Value three-family. Finished basement, driveway parking. Bus to Newark Penn then NEC to NY Penn.", source:"sample" }
+  ];
+
+  let listings = [];
+  let isLive = false;
+  let updated = null;
+  let shortlist = new Set(JSON.parse(localStorage.getItem("ehf_short") || "[]"));
+
+  const fmtK = n => "$" + Math.round(n/1000) + "k";
+  const fmtMoney = n => "$" + Number(n).toLocaleString("en-US");
+  function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function timeAgo(d){ if(!d) return "just now"; const s=Math.max(0,(Date.now()-d.getTime())/1000); if(s<90)return "just now"; const m=s/60; if(m<60)return Math.round(m)+"m ago"; const h=m/60; if(h<24)return Math.round(h)+"h ago"; return Math.round(h/24)+"d ago"; }
+
+  function fitScore(l){
+    let s = 0;
+    if (l.units >= 3) s += 30; if (l.units === 4) s += 10;
+    if (l.basementFinished && l.basementFullBath) s += 25;
+    if (l.parkingYes) s += 15;
+    s += Math.max(0, 55 - l.commuteMin);          // shorter commute = better
+    s += Math.max(0, (MAX_BUDGET - l.price) / 20000); // more headroom = better
+    s += Math.max(0, (20000 - l.taxAnnual) / 1500);   // lower taxes = better
+    return s;
+  }
+
+  async function loadListings(manual){
+    const status = document.getElementById("src-status");
+    const bar = document.getElementById("srcbar");
+    if (manual) status.textContent = "Refreshing…";
+    try {
+      const res = await fetch("listings.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("no feed");
+      const data = await res.json();
+      listings = (data.listings || []).map(normalize);
+      updated = data.updated ? new Date(data.updated) : new Date();
+      isLive = true;
+      bar.classList.add("live");
+      status.innerHTML = `<b>${listings.length}</b> active MLS listings · synced ${timeAgo(updated)} · source: <b>${esc(data.source || "MLS")}</b>`;
+      if (manual) toast("Listings refreshed");
+    } catch (e) {
+      listings = SAMPLE.map(normalize);
+      isLive = false;
+      bar.classList.remove("live");
+      status.innerHTML = `<span class="demo-pill">Sample data</span> Showing example Essex homes — connect a live MLS source to pull real active listings.`;
+      if (manual) toast("No live feed — showing samples");
+    }
+    buildTownFilter();
+    render();
+  }
+
+  function normalize(l){
+    return { parkingYes: !!(l.parking && l.parking !== "None"), basementFinished:false, basementFullBath:false, ...l,
+      commuteMin: Number(l.commuteMin) || 99 };
+  }
+
+  function buildTownFilter(){
+    const sel = document.getElementById("f-town");
+    const cur = sel.value;
+    const towns = [...new Set(listings.map(l => l.town))].sort();
+    sel.innerHTML = `<option value="all">All towns (${listings.length})</option>` +
+      towns.map(t => `<option value="${esc(t)}">${esc(t)} (${listings.filter(l=>l.town===t).length})</option>`).join("");
+    if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  }
+
+  function activeFilters(){
+    return {
+      town: document.getElementById("f-town").value,
+      units: +document.getElementById("f-units").value,
+      price: +document.getElementById("f-price").value,
+      commute: +document.getElementById("f-commute").value,
+      basement: document.getElementById("f-basement").checked,
+      parking: document.getElementById("f-parking").checked,
+    };
+  }
+
+  function filtered(){
+    const f = activeFilters();
+    return listings.filter(l =>
+      (f.town === "all" || l.town === f.town) &&
+      l.units >= f.units &&
+      l.price <= f.price &&
+      l.commuteMin <= f.commute &&
+      (!f.basement || (l.basementFinished && l.basementFullBath)) &&
+      (!f.parking || l.parkingYes)
+    );
+  }
+
+  function sortList(list){
+    const by = document.getElementById("sort").value;
+    const c = list.slice();
+    if (by === "commute") c.sort((a,b)=>a.commuteMin-b.commuteMin);
+    else if (by === "price") c.sort((a,b)=>a.price-b.price);
+    else if (by === "taxes") c.sort((a,b)=>a.taxAnnual-b.taxAnnual);
+    else if (by === "ppu") c.sort((a,b)=>(a.price/a.units)-(b.price/b.units));
+    else if (by === "fit") c.sort((a,b)=>fitScore(b)-fitScore(a));
+    return c;
+  }
+
+  function renderStats(list){
+    const n = list.length;
+    const avg = k => n ? Math.round(list.reduce((s,l)=>s+l[k],0)/n) : 0;
+    const avgCommute = n ? Math.round(list.reduce((s,l)=>s+l.commuteMin,0)/n) : 0;
+    document.getElementById("stats").innerHTML = `
+      <div class="stat brass"><div class="label">Matches</div><div class="v brass">${n}</div><div class="cap">homes on criteria</div></div>
+      <div class="stat"><div class="label">Avg price</div><div class="v">${n?fmtK(avg("price")):"—"}</div><div class="cap">under ${fmtK(MAX_BUDGET)} cap</div></div>
+      <div class="stat rail"><div class="label">Avg commute</div><div class="v rail">${n?avgCommute+"m":"—"}</div><div class="cap">door to Penn</div></div>
+      <div class="stat go"><div class="label">Avg taxes</div><div class="v go">${n?fmtK(avg("taxAnnual")):"—"}</div><div class="cap">per year</div></div>`;
+  }
+
+  function render(){
+    const list = sortList(filtered());
+    renderStats(list);
+    document.getElementById("count").textContent = list.length + (list.length===1?" home":" homes");
+    updateDock();
+    const grid = document.getElementById("grid");
+    if (!list.length){ grid.innerHTML = `<div class="empty">No homes match these filters. Loosen the price, commute, or unit count.</div>`; return; }
+    grid.innerHTML = list.map(cardHtml).join("");
+  }
+
+  function cardHtml(l){
+    const cc = l.commuteMin <= 45 ? "go" : "warn";
+    const ppu = fmtK(l.price / l.units);
+    const inShort = shortlist.has(l.id);
+    const photo = l.photo
+      ? `<img src="${esc(l.photo)}" alt="${esc(l.address)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',innerHTML:'<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><path d=\\'M3 10.5 12 4l9 6.5\\'/><path d=\\'M5 9.5V20h14V9.5\\'/></svg><span>'+${JSON.stringify(esc(l.town))}+'</span>'}))">`
+      : `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9 20v-6h6v6"/></svg><span>${esc(l.town)}</span></div>`;
+    const feat = (ok, yesT, noT) => `<span class="feat ${ok?"yes":"no"}">${ok?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>'}${ok?yesT:noT}</span>`;
+    return `
+    <div class="card ${inShort?"short":""}">
+      <div class="photo">
+        ${photo}
+        <div class="ptags">
+          <span class="ptag units">${l.units}-Family</span>
+          <span class="ptag status">Active</span>
+        </div>
+        <div class="commute-chip ${cc}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${l.commuteMin}m to Penn</div>
+      </div>
+      <div class="cbody">
+        <div class="priceline">
+          <span class="price">${fmtMoney(l.price)}</span>
+          <span class="ppu">${ppu}/unit</span>
+        </div>
+        <div class="addr"><a href="${esc(l.listingUrl)}" target="_blank" rel="noopener noreferrer">${esc(l.address)}</a></div>
+        <div class="town">${esc(l.town)} · ${esc(l.county)}</div>
+        <div class="facts">
+          <div class="fact">Taxes <b>${fmtMoney(l.taxAnnual)}</b>/yr</div>
+          <div class="fact">Beds/Baths <b>${l.beds}/${l.baths}</b></div>
+          ${l.sqft?`<div class="fact"><b>${Number(l.sqft).toLocaleString()}</b> sqft</div>`:""}
+          <div class="fact">Via <b style="font-family:var(--sans)">${esc(l.station||"transit")}</b></div>
+        </div>
+        <div class="feats">
+          ${feat(l.basementFinished && l.basementFullBath, "Finished bsmt + bath", "Basement unconfirmed")}
+          ${feat(l.parkingYes, esc(l.parking||"Parking"), "No parking")}
+        </div>
+        <div class="snippet" id="snip-${l.id}">${esc(l.desc||"No description provided.")}<span class="mls">${esc(l.mls||"")}${l.source==="sample"?" · SAMPLE — not a live listing":""}</span></div>
+        <div class="cactions">
+          <a class="btn brass sm" href="${esc(l.listingUrl)}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Listing</a>
+          <button class="btn sm" onclick="toggleSnip('${l.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Details</button>
+          <button class="btn sm ghost icon-only" onclick="toggleShort('${l.id}')" aria-label="Shortlist"><svg class="star ${inShort?"on":""}" viewBox="0 0 24 24" fill="${inShort?"currentColor":"none"}" stroke="currentColor" stroke-width="2"><path d="m12 17.3-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function toggleSnip(id){ document.getElementById("snip-"+id).classList.toggle("open"); }
+
+  function toggleShort(id){
+    if (shortlist.has(id)) shortlist.delete(id); else shortlist.add(id);
+    localStorage.setItem("ehf_short", JSON.stringify([...shortlist]));
+    render();
+  }
+  function clearShortlist(){ shortlist.clear(); localStorage.setItem("ehf_short","[]"); render(); toast("Shortlist cleared"); }
+  function updateDock(){
+    const d = document.getElementById("dock");
+    document.getElementById("dock-n").textContent = shortlist.size;
+    d.classList.toggle("show", shortlist.size > 0);
+  }
+
+  // ------- export -------
+  function shortItems(){ return listings.filter(l => shortlist.has(l.id)); }
+  function exportText(){
+    const items = shortItems();
+    if (!items.length) return "Star some homes to build your shortlist.";
+    const lines = items.map((l,i) => {
+      return `${i+1}. ${fmtMoney(l.price)} · ${l.units}-family · ${l.town}\n`
+        + `   ${l.address} — ${l.commuteMin} min to Penn (${l.station||"transit"})\n`
+        + `   Taxes ${fmtMoney(l.taxAnnual)}/yr · ${l.parking||"parking n/a"} · ${l.basementFinished?(l.basementFullBath?"finished bsmt + full bath":"finished basement"):"basement unconfirmed"}\n`
+        + `   ${l.mls||""}  ${l.listingUrl}`;
+    });
+    const header = `Hi — here are ${items.length} multi-family homes I'd like to look at (all active, under $850k, within commute range to Penn):`;
+    const footer = `\nCould we set up showings? ${isLive?"":"\n(Note: sample list — will resend from live MLS data.)"}`;
+    return header + "\n\n" + lines.join("\n\n") + "\n" + footer;
+  }
+  function openExport(){
+    const text = exportText();
+    document.getElementById("export-text").textContent = text;
+    const subject = encodeURIComponent(`Multi-family shortlist — ${shortItems().length} homes to tour`);
+    const body = encodeURIComponent(text);
+    document.getElementById("email-btn").href = `mailto:${REALTOR_EMAIL}?subject=${subject}&body=${body}`;
+    document.getElementById("backdrop").classList.add("open");
+  }
+  function closeExport(){ document.getElementById("backdrop").classList.remove("open"); }
+  function copyExport(){ copy(exportText(), "Shortlist copied — paste into your text"); }
+
+  function copy(text, msg){
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(()=>toast(msg)).catch(()=>fallbackCopy(text,msg));
+    else fallbackCopy(text,msg);
+  }
+  function fallbackCopy(text,msg){ const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");toast(msg);}catch(e){toast("Press ⌘/Ctrl+C");} document.body.removeChild(ta); }
+  let toastT;
+  function toast(msg){ const t=document.getElementById("toast"); document.getElementById("toast-msg").textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
+
+  // ------- filter helpers -------
+  function setPrice(v){ document.getElementById("price-val").textContent = fmtK(v); document.getElementById("f-price").style.setProperty("--fill", ((v-450000)/(850000-450000)*100)+"%"); render(); }
+  function setCommute(v){ document.getElementById("commute-val").textContent = v + " min"; document.getElementById("f-commute").style.setProperty("--fill", ((v-25)/(55-25)*100)+"%"); render(); }
+  function resetFilters(){
+    document.getElementById("f-town").value="all"; document.getElementById("f-units").value="2";
+    document.getElementById("f-price").value="850000"; setPrice(850000);
+    document.getElementById("f-commute").value="55"; setCommute(55);
+    document.getElementById("f-basement").checked=false; document.getElementById("f-parking").checked=false;
+    document.getElementById("sort").value="commute"; render();
+  }
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeExport(); });
+  setPrice(850000); setCommute(55);
+  loadListings();
+</script>
+
+</body>
+</html>

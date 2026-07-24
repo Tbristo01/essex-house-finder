@@ -1,0 +1,50 @@
+name: Update listings
+
+# Refreshes active MLS multi-family listings on a schedule and on demand,
+# then commits listings.json for the dashboard. No server required.
+
+on:
+  schedule:
+    - cron: "0 12 * * *"   # ~8am ET daily (new active listings hit the MLS overnight/morning)
+  workflow_dispatch: {}      # manual "Run workflow" button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-listings
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch listings and build listings.json
+        env:
+          MAX_PRICE: "850000"
+          MIN_UNITS: "2"
+          # Live sources activate automatically once these secrets are added
+          # (Settings → Secrets and variables → Actions):
+          RENTCAST_API_KEY: ${{ secrets.RENTCAST_API_KEY }}       # RentCast (consumer MLS API)
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }} # real door-to-Penn commute times
+          RESO_BASE_URL: ${{ secrets.RESO_BASE_URL }}             # direct GSMLS feed (realtor-authorized)
+          RESO_TOKEN: ${{ secrets.RESO_TOKEN }}
+          RESO_BASIC: ${{ secrets.RESO_BASIC }}
+        run: node scripts/fetch-listings.mjs
+
+      - name: Commit listings.json if changed
+        run: |
+          git config user.name "house-finder-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add listings.json
+          if git diff --staged --quiet; then
+            echo "No listing changes this run."
+          else
+            git commit -m "chore: refresh active listings [skip ci]"
+            git push
+          fi
