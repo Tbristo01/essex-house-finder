@@ -18,6 +18,9 @@ const POOL = [
   { town: "Nutley",      units: 3, price: 799000, beds: 8, baths: 4, taxAnnual: 15900, sqft: 3300, desc: "Three-family, finished basement, off-street parking for 4, garage." },
 ];
 
+const ZIP = { Maplewood:"07040","South Orange":"07079", Newark:"07104","East Orange":"07017", Orange:"07050", Montclair:"07042", Bloomfield:"07003","Glen Ridge":"07028", Union:"07083", Irvington:"07111", Belleville:"07109", Nutley:"07110" };
+const STREETS = ["Prospect St","Vose Ave","Elwood Ave","Walnut St","Broughton Ave","Colonial Ave","Ridgewood Ave","Morris Ave","Sanford Ave","Park Ave","Grove St","Cedar St","Oak Pl","Berkeley Ave","Highland Ave"];
+
 function rng(seed) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
 export async function demo(env) {
@@ -25,13 +28,18 @@ export async function demo(env) {
   const rand = rng(Date.now());
   const n = 8 + Math.floor(rand() * 4);
   const picks = [...POOL].sort(() => rand() - 0.5).slice(0, n);
-  return picks.map((p, i) => ({
-    ...p,
-    address: `${100 + Math.floor(rand() * 800)} ${p.town} Ave (${p.units}-fam)`,
-    status: "Active",
-    mls: "GSMLS 39" + (10000 + Math.floor(rand() * 89999)),
-    listingUrl: `https://www.realtor.com/realestateandhomes-search/${p.town.replace(/\s+/g, "-")}_NJ/type-multi-family-home`,
-    source: "demo",
-  }));
+  return picks.map((p) => {
+    const num = 40 + Math.floor(rand() * 760);
+    const street = STREETS[Math.floor(rand() * STREETS.length)];
+    const zip = ZIP[p.town] || "070" + (10 + Math.floor(rand() * 89));
+    return {
+      ...p,
+      address: `${num} ${street}, ${p.town}, NJ ${zip}`,
+      status: "Active",
+      mls: "GSMLS 39" + (10000 + Math.floor(rand() * 89999)),
+      listingUrl: `https://www.realtor.com/realestateandhomes-search/${p.town.replace(/\s+/g, "-")}_NJ/type-multi-family-home`,
+      source: "demo",
+    };
+  });
 }
 demo.sourceName = "demo";

@@ -42,9 +42,15 @@ export async function reso(env) {
   return rows.map(p => {
     // SimplyRETS vs RESO field shapes both handled loosely.
     const addr = p.address || {};
+    // Build the most complete address available: "street, city, ST zip".
+    const street = addr.full || `${addr.streetNumber || ""} ${addr.streetName || ""}`.trim() || p.UnparsedAddress || "";
+    const city = addr.city || p.City || "";
+    const state = addr.state || p.StateOrProvince || "NJ";
+    const zip = addr.postalCode || p.PostalCode || "";
+    const full = [street, [city, state].filter(Boolean).join(", "), zip].filter(Boolean).join(street.includes(",") ? " " : ", ").trim();
     return {
-      address: p.address?.full || `${addr.streetNumber || ""} ${addr.streetName || ""}`.trim() || p.UnparsedAddress || "Listing",
-      town: addr.city || p.City || "",
+      address: full || street || "Listing",
+      town: city,
       price: Number(p.listPrice ?? p.ListPrice),
       units: Number(p.property?.area || p.NumberOfUnitsTotal) || MIN_UNITS,
       beds: Number(p.property?.bedrooms ?? p.BedroomsTotal) || null,
